@@ -1,0 +1,16 @@
+{
+  "name": "ffs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Small CommonJS CLI with subcommands.",
+  "bin": {
+    "ffs": "./bin/ffs.cjs"
+  },
+  "scripts": {
+    "ffs": "node ./bin/ffs.cjs",
+    "test:cli": "node ./bin/ffs.cjs test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
