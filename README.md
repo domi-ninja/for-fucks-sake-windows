@@ -1,20 +1,17 @@
 # ffs
 
-Small CommonJS CLI with subcommands.
+## ffs path
 
-## Local development
+Opens the ffs GUI for editing `Path` on Windows.
 
-Run the CLI directly:
-
-```sh
-npm run ffs -- -- test --example
+```powershell
+ffs path
 ```
 
-Install the `ffs` command binding locally:
+## ffs test
 
-```sh
-npm link
+Runs the test subcommand in the current working directory.
+
+```powershell
 ffs test --example
 ```
-
-The `test` subcommand runs in the current working directory, so `ffs test` uses the folder you call it from.

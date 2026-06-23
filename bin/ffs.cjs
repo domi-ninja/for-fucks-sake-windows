@@ -5,6 +5,7 @@
 const path = require('node:path');
 
 const commands = new Map([
+  ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
 ]);
 
@@ -42,6 +43,7 @@ function printHelp() {
     'Usage: ffs <command> [args]',
     '',
     'Commands:',
+    '  path    Open the ffs Path editor GUI',
     '  test    Run the test subcommand in the current working directory',
   ].join('\n'));
 }
