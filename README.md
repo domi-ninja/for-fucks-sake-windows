@@ -10,8 +10,8 @@ ffs path
 
 ## ffs test
 
-Runs the test subcommand in the current working directory.
+Runs dotnet tests from the current working directory with redirected test artifacts.
 
 ```powershell
-ffs test --example
+ffs test --filter FullyQualifiedName~EventLog
 ```

@@ -44,7 +44,7 @@ function printHelp() {
     '',
     'Commands:',
     '  path    Open the ffs Path editor GUI',
-    '  test    Run the test subcommand in the current working directory',
+    '  test    Run dotnet tests from the current working directory',
   ].join('\n'));
 }
 
