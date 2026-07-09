@@ -1,5 +1,13 @@
 # ffs
 
+## ffs find
+
+Lists the current directory tree, skipping hidden paths and common dependency, build, cache, and output directories by default. Add JavaScript regexes to `.ffsfindignore` in the current directory or an ancestor to skip more paths; regexes match the printed `./path` form case-insensitively.
+
+```powershell
+ffs find
+```
+
 ## ffs path
 
 Opens the ffs GUI for editing `Path` on Windows.

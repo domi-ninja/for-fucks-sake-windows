@@ -5,6 +5,7 @@
 const path = require('node:path');
 
 const commands = new Map([
+  ['find', path.join(__dirname, '..', 'commands', 'find.cjs')],
   ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
 ]);
@@ -43,6 +44,7 @@ function printHelp() {
     'Usage: ffs <command> [args]',
     '',
     'Commands:',
+    '  find    List the current directory tree',
     '  path    Open the ffs Path editor GUI',
     '  test    Run dotnet tests from the current working directory',
   ].join('\n'));
