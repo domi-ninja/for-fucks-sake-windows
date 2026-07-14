@@ -23,3 +23,11 @@ Runs dotnet tests from the current working directory with redirected test artifa
 ```powershell
 ffs test --filter FullyQualifiedName~EventLog
 ```
+
+## ffs unlock
+
+Keeps killing Windows processes that lock a file or folder until you stop it.
+
+```powershell
+ffs unlock .\event-hub
+```

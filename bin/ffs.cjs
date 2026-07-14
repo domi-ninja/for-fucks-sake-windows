@@ -8,6 +8,7 @@ const commands = new Map([
   ['find', path.join(__dirname, '..', 'commands', 'find.cjs')],
   ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
+  ['unlock', path.join(__dirname, '..', 'commands', 'unlock.cjs')],
 ]);
 
 async function main(argv = process.argv.slice(2)) {
@@ -47,6 +48,7 @@ function printHelp() {
     '  find    List the current directory tree',
     '  path    Open the ffs Path editor GUI',
     '  test    Run dotnet tests from the current working directory',
+    '  unlock  Keep killing processes that lock a file or folder',
   ].join('\n'));
 }
 
