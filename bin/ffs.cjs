@@ -5,6 +5,7 @@
 const path = require('node:path');
 
 const commands = new Map([
+  ['az', path.join(__dirname, '..', 'commands', 'az.cjs')],
   ['find', path.join(__dirname, '..', 'commands', 'find.cjs')],
   ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
@@ -45,6 +46,7 @@ function printHelp() {
     'Usage: ffs <command> [args]',
     '',
     'Commands:',
+    '  az      Check the Azure CLI sign-in and pick the active subscription',
     '  find    List the current directory tree',
     '  path    Open the ffs Path editor GUI',
     '  test    Run dotnet tests from the current working directory',

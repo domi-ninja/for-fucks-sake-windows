@@ -7,6 +7,7 @@
     "ffs": "./bin/ffs.cjs"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "ffs": "node ./bin/ffs.cjs",
     "test:cli": "node ./bin/ffs.cjs test"
   },
@@ -15,5 +16,9 @@
   },
   "dependencies": {
     "koffi": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }

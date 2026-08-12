@@ -1,5 +1,13 @@
 # ffs
 
+## ffs az
+
+Checks the Azure CLI sign-in, signs in through Microsoft Edge when the token is missing or expired, then shows a picker for the active subscription. Use `--tenant` to sign in to and filter by one tenant, `--login` to sign in again, and `--status` to only print the current account.
+
+```powershell
+ffs az --tenant contoso.onmicrosoft.com
+```
+
 ## ffs find
 
 Lists the current directory tree, skipping hidden paths and common dependency, build, cache, and output directories by default. Add JavaScript regexes to `.ffsfindignore` in the current directory or an ancestor to skip more paths; regexes match the printed `./path` form case-insensitively.
