@@ -24,6 +24,14 @@ Opens the ffs GUI for editing `Path` on Windows.
 ffs path
 ```
 
+## ffs port
+
+Lists Windows processes listening on TCP ports when called without arguments. When given ports, finds and kills the processes listening on them.
+
+```powershell
+ffs port 1234 4567
+```
+
 ## ffs test
 
 Runs dotnet tests from the current working directory with redirected test artifacts.

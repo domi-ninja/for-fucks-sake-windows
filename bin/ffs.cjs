@@ -8,6 +8,7 @@ const commands = new Map([
   ['az', path.join(__dirname, '..', 'commands', 'az.cjs')],
   ['find', path.join(__dirname, '..', 'commands', 'find.cjs')],
   ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
+  ['port', path.join(__dirname, '..', 'commands', 'port.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
   ['unlock', path.join(__dirname, '..', 'commands', 'unlock.cjs')],
 ]);
@@ -49,6 +50,7 @@ function printHelp() {
     '  az      Check the Azure CLI sign-in and pick the active subscription',
     '  find    List the current directory tree',
     '  path    Open the ffs Path editor GUI',
+    '  port    List listeners or kill them by TCP port',
     '  test    Run dotnet tests from the current working directory',
     '  unlock  Keep killing processes that lock a file or folder',
   ].join('\n'));
