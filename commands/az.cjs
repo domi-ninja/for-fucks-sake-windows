@@ -36,27 +36,40 @@ async function run(args = process.argv.slice(2), context = {}) {
     return 0;
   }
 
-  let account = await readActiveAccount();
+  const azRunner = context.runAz || runAz;
+  const edgeLocator = context.findEdge || findEdge;
+  const configuredAccount = await readConfiguredAccount(azRunner);
+  let account = configuredAccount && await hasValidAccessToken(azRunner)
+    ? configuredAccount
+    : null;
 
   if (options.statusOnly) {
     printStatus(account);
     return account ? 0 : 1;
   }
 
-  if (!account || options.forceLogin) {
+  if (!account || options.forceLogin || options.tenant) {
     if (account) {
       console.log(`Signed in as ${account.user.name}, signing in again.`);
+    } else if (configuredAccount) {
+      console.log(`Sign-in expired for ${configuredAccount.user.name}.`);
     } else {
       console.log('Not signed in.');
     }
 
-    const loginExitCode = await login(options.tenant);
+    const loginTenant = options.tenant || (configuredAccount && configuredAccount.tenantId);
+
+    if (!options.tenant && loginTenant) {
+      console.log(`Reauthenticating tenant ${loginTenant}.`);
+    }
+
+    const loginExitCode = await login(loginTenant, azRunner, edgeLocator);
 
     if (loginExitCode !== 0) {
       return loginExitCode;
     }
 
-    account = await readActiveAccount();
+    account = await readActiveAccount(azRunner);
 
     if (!account) {
       console.error('ffs az: login did not produce an active account.');
@@ -66,7 +79,7 @@ async function run(args = process.argv.slice(2), context = {}) {
 
   printStatus(account);
 
-  const subscriptions = await readSubscriptions(options.tenant);
+  const subscriptions = await readSubscriptions(options.tenant, azRunner);
 
   if (subscriptions.length === 0) {
     console.error(
@@ -106,7 +119,7 @@ async function run(args = process.argv.slice(2), context = {}) {
     return 0;
   }
 
-  const setExitCode = await runAz(['account', 'set', '--subscription', selected.id]);
+  const setExitCode = await azRunner(['account', 'set', '--subscription', selected.id]);
 
   if (setExitCode !== 0) {
     return setExitCode;
@@ -180,8 +193,8 @@ function formatSubscription(subscription) {
   return `${subscription.name}  ${subscription.tenantId}`;
 }
 
-async function readActiveAccount() {
-  const shown = await runAz(['account', 'show', '--output', 'json'], { capture: true });
+async function readConfiguredAccount(azRunner = runAz) {
+  const shown = await azRunner(['account', 'show', '--output', 'json'], { capture: true });
 
   if (shown.exitCode !== 0) {
     return null;
@@ -194,12 +207,6 @@ async function readActiveAccount() {
     return null;
   }
 
-  const token = await runAz(['account', 'get-access-token', '--output', 'none'], { capture: true });
-
-  if (token.exitCode !== 0) {
-    return null;
-  }
-
   return {
     id: account.id,
     name: account.name,
@@ -208,8 +215,23 @@ async function readActiveAccount() {
   };
 }
 
-async function readSubscriptions(tenant) {
-  const listed = await runAz(['account', 'list', '--output', 'json'], { capture: true });
+async function hasValidAccessToken(azRunner = runAz) {
+  const token = await azRunner(['account', 'get-access-token', '--output', 'none'], { capture: true });
+  return token.exitCode === 0;
+}
+
+async function readActiveAccount(azRunner = runAz) {
+  const account = await readConfiguredAccount(azRunner);
+
+  if (!account || !await hasValidAccessToken(azRunner)) {
+    return null;
+  }
+
+  return account;
+}
+
+async function readSubscriptions(tenant, azRunner = runAz) {
+  const listed = await azRunner(['account', 'list', '--output', 'json'], { capture: true });
 
   if (listed.exitCode !== 0) {
     process.stderr.write(listed.stderr);
@@ -239,23 +261,23 @@ function matchesTenant(subscription, tenant) {
   );
 }
 
-async function login(tenant) {
+async function login(tenant, azRunner = runAz, edgeLocator = findEdge) {
   const loginArgs = ['login', '--output', 'none'];
 
   if (tenant) {
     loginArgs.push('--tenant', tenant);
   }
 
-  const edgePath = findEdge();
+  const edgePath = edgeLocator();
 
   if (!edgePath) {
     console.log('Microsoft Edge not found, using the default browser.');
-    return await runAz(loginArgs);
+    return await azRunner(loginArgs);
   }
 
   console.log('Opening Microsoft Edge to sign in.');
 
-  return await runAz(loginArgs, { env: edgeBrowserEnv(edgePath) });
+  return await azRunner(loginArgs, { env: edgeBrowserEnv(edgePath) });
 }
 
 // The Azure CLI opens the sign-in page through Python's webbrowser module, which
@@ -488,8 +510,12 @@ if (require.main === module) {
 
 module.exports = {
   formatSubscription,
+  hasValidAccessToken,
+  login,
   matchesTenant,
   parseArgs,
+  readActiveAccount,
+  readConfiguredAccount,
   run,
   selectFromList,
 };
