@@ -11,6 +11,7 @@ const commands = new Map([
   ['port', path.join(__dirname, '..', 'commands', 'port.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
   ['unlock', path.join(__dirname, '..', 'commands', 'unlock.cjs')],
+  ['wt', path.join(__dirname, '..', 'commands', 'wt.cjs')],
 ]);
 
 async function main(argv = process.argv.slice(2)) {
@@ -53,6 +54,7 @@ function printHelp() {
     '  port    List listeners or kill them by TCP port',
     '  test    Run dotnet tests from the current working directory',
     '  unlock  Keep killing processes that lock a file or folder',
+    '  wt      Open the T3 worktree manager GUI',
   ].join('\n'));
 }
 

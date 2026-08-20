@@ -47,3 +47,11 @@ Keeps killing Windows processes that lock a file or folder until you stop it.
 ```powershell
 ffs unlock .\event-hub
 ```
+
+## ffs wt
+
+Opens a Windows GUI listing T3 worktree folders by project, Git branch, and folder name. Check any number of worktrees and delete the selection; registered worktrees are removed through Git, and stale folders are removed directly.
+
+```powershell
+ffs wt
+```
