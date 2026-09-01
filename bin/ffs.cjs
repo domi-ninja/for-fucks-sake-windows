@@ -7,6 +7,7 @@ const path = require('node:path');
 const commands = new Map([
   ['az', path.join(__dirname, '..', 'commands', 'az.cjs')],
   ['find', path.join(__dirname, '..', 'commands', 'find.cjs')],
+  ['memory', path.join(__dirname, '..', 'commands', 'memory.cjs')],
   ['path', path.join(__dirname, '..', 'commands', 'path.cjs')],
   ['port', path.join(__dirname, '..', 'commands', 'port.cjs')],
   ['test', path.join(__dirname, '..', 'commands', 'test.cjs')],
@@ -50,6 +51,7 @@ function printHelp() {
     'Commands:',
     '  az      Check the Azure CLI sign-in and pick the active subscription',
     '  find    List the current directory tree',
+    '  memory  List and dump all local GitHub Copilot memories',
     '  path    Open the ffs Path editor GUI',
     '  port    List listeners or kill them by TCP port',
     '  test    Run dotnet tests from the current working directory',

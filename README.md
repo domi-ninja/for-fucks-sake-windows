@@ -17,6 +17,15 @@ Lists the current directory tree, skipping hidden paths and common dependency, b
 ffs find
 ```
 
+### ffs memory
+
+Lists and dumps every local GitHub Copilot memory below VS Code's workspace storage directory. The `sucks` subcommand deletes the same files instead.
+
+```powershell
+ffs memory
+ffs memory sucks
+```
+
 ### ffs path
 
 Opens the ffs GUI for editing `Path` on Windows that, unlike the new GUI Tool made by Microsoft, does not suffer from "interesting" character limits to the PATH environment variable. The MS tool makes it error message  sound like it is a hard limit, but are actually just a bug in the program, the PATH can be longer without any problems. 
