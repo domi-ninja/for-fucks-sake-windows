@@ -19,7 +19,7 @@ ffs find
 
 ### ffs memory
 
-Lists and dumps every local GitHub Copilot memory below VS Code's workspace storage directory. The `sucks` subcommand deletes the same files instead.
+Lists and dumps local memory files created by GitHub Copilot, Claude Code, and Codex. The `sucks` subcommand deletes the same files instead. Session history, plans, rules, credentials, and intermediate databases are excluded.
 
 ```powershell
 ffs memory

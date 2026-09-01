@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 type CommandContext = {
+  homePath?: string;
   workspaceStoragePath?: string;
 };
 
@@ -26,10 +27,15 @@ async function run(args = process.argv.slice(2), context: CommandContext = {}) {
   }
 
   const workspaceStoragePath = context.workspaceStoragePath || getWorkspaceStoragePath();
-  const memoryFiles = await findMemoryFiles(workspaceStoragePath);
+  const homePath = context.homePath || getHomePath();
+  const memoryFiles = [
+    ...await findMemoryFiles(workspaceStoragePath),
+    ...await findClaudeMemoryFiles(homePath),
+    ...await findFilesIfExists(path.join(homePath, '.codex', 'memories')),
+  ].sort((left, right) => left.localeCompare(right));
 
   if (memoryFiles.length === 0) {
-    console.log(`No Copilot memories found under ${workspaceStoragePath}.`);
+    console.log('No supported AI memories found.');
     return 0;
   }
 
@@ -84,8 +90,29 @@ function getWorkspaceStoragePath() {
   return path.join(appDataPath, 'Code', 'User', 'workspaceStorage');
 }
 
+function getHomePath() {
+  const homePath = process.env.USERPROFILE;
+
+  if (!homePath) {
+    throw new Error('USERPROFILE is not set.');
+  }
+
+  return homePath;
+}
+
 async function findMemoryFiles(workspaceStoragePath: string) {
-  const workspaceEntries = await fs.readdir(workspaceStoragePath, { withFileTypes: true });
+  let workspaceEntries;
+
+  try {
+    workspaceEntries = await fs.readdir(workspaceStoragePath, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
+
   const memoryFiles: string[] = [];
 
   for (const workspaceEntry of workspaceEntries.sort((left, right) => left.name.localeCompare(right.name))) {
@@ -111,6 +138,46 @@ async function findMemoryFiles(workspaceStoragePath: string) {
   }
 
   return memoryFiles;
+}
+
+async function findClaudeMemoryFiles(homePath: string) {
+  const projectsPath = path.join(homePath, '.claude', 'projects');
+  let projectEntries;
+
+  try {
+    projectEntries = await fs.readdir(projectsPath, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
+
+  const memoryFiles: string[] = [];
+
+  for (const projectEntry of projectEntries.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (!projectEntry.isDirectory()) {
+      continue;
+    }
+
+    const memoryPath = path.join(projectsPath, projectEntry.name, 'memory');
+    memoryFiles.push(...await findFilesIfExists(memoryPath));
+  }
+
+  return memoryFiles;
+}
+
+async function findFilesIfExists(directoryPath: string) {
+  try {
+    return await findFiles(directoryPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 async function findFiles(directoryPath: string): Promise<string[]> {
@@ -155,6 +222,7 @@ if (require.main === module) {
 
 export {
   deleteMemoryFiles,
+  findClaudeMemoryFiles,
   findMemoryFiles,
   run,
 };

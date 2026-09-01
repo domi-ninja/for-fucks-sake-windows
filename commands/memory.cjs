@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMemoryFiles = deleteMemoryFiles;
+exports.findClaudeMemoryFiles = findClaudeMemoryFiles;
 exports.findMemoryFiles = findMemoryFiles;
 exports.run = run;
 const node_fs_1 = require("node:fs");
@@ -24,9 +25,14 @@ async function run(args = process.argv.slice(2), context = {}) {
         return 1;
     }
     const workspaceStoragePath = context.workspaceStoragePath || getWorkspaceStoragePath();
-    const memoryFiles = await findMemoryFiles(workspaceStoragePath);
+    const homePath = context.homePath || getHomePath();
+    const memoryFiles = [
+        ...await findMemoryFiles(workspaceStoragePath),
+        ...await findClaudeMemoryFiles(homePath),
+        ...await findFilesIfExists(node_path_1.default.join(homePath, '.codex', 'memories')),
+    ].sort((left, right) => left.localeCompare(right));
     if (memoryFiles.length === 0) {
-        console.log(`No Copilot memories found under ${workspaceStoragePath}.`);
+        console.log('No supported AI memories found.');
         return 0;
     }
     if (deleteMemories) {
@@ -70,8 +76,24 @@ function getWorkspaceStoragePath() {
     }
     return node_path_1.default.join(appDataPath, 'Code', 'User', 'workspaceStorage');
 }
+function getHomePath() {
+    const homePath = process.env.USERPROFILE;
+    if (!homePath) {
+        throw new Error('USERPROFILE is not set.');
+    }
+    return homePath;
+}
 async function findMemoryFiles(workspaceStoragePath) {
-    const workspaceEntries = await node_fs_1.promises.readdir(workspaceStoragePath, { withFileTypes: true });
+    let workspaceEntries;
+    try {
+        workspaceEntries = await node_fs_1.promises.readdir(workspaceStoragePath, { withFileTypes: true });
+    }
+    catch (error) {
+        if (error.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
     const memoryFiles = [];
     for (const workspaceEntry of workspaceEntries.sort((left, right) => left.name.localeCompare(right.name))) {
         if (!workspaceEntry.isDirectory()) {
@@ -88,6 +110,39 @@ async function findMemoryFiles(workspaceStoragePath) {
         }
     }
     return memoryFiles;
+}
+async function findClaudeMemoryFiles(homePath) {
+    const projectsPath = node_path_1.default.join(homePath, '.claude', 'projects');
+    let projectEntries;
+    try {
+        projectEntries = await node_fs_1.promises.readdir(projectsPath, { withFileTypes: true });
+    }
+    catch (error) {
+        if (error.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
+    const memoryFiles = [];
+    for (const projectEntry of projectEntries.sort((left, right) => left.name.localeCompare(right.name))) {
+        if (!projectEntry.isDirectory()) {
+            continue;
+        }
+        const memoryPath = node_path_1.default.join(projectsPath, projectEntry.name, 'memory');
+        memoryFiles.push(...await findFilesIfExists(memoryPath));
+    }
+    return memoryFiles;
+}
+async function findFilesIfExists(directoryPath) {
+    try {
+        return await findFiles(directoryPath);
+    }
+    catch (error) {
+        if (error.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
 }
 async function findFiles(directoryPath) {
     const entries = await node_fs_1.promises.readdir(directoryPath, { withFileTypes: true });
