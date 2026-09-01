@@ -58,7 +58,7 @@ async function run(args = process.argv.slice(2), context = {}) {
         }
         account = await readActiveAccount(azRunner);
         if (!account) {
-            console.error('ffs az: login did not produce an active account.');
+            console.error('ffs cloud az: login did not produce an active account.');
             return 1;
         }
     }
@@ -66,13 +66,13 @@ async function run(args = process.argv.slice(2), context = {}) {
     const subscriptions = await readSubscriptions(options.tenant, azRunner);
     if (subscriptions.length === 0) {
         console.error(options.tenant
-            ? `ffs az: no enabled subscriptions found in tenant ${options.tenant}.`
-            : 'ffs az: no enabled subscriptions found.');
+            ? `ffs cloud az: no enabled subscriptions found in tenant ${options.tenant}.`
+            : 'ffs cloud az: no enabled subscriptions found.');
         return 1;
     }
     const activeIndex = Math.max(subscriptions.findIndex((subscription) => subscription.id === account.id), 0);
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
-        console.error('ffs az: no interactive terminal, cannot show the account picker.');
+        console.error('ffs cloud az: no interactive terminal, cannot show the account picker.');
         printSubscriptions(subscriptions, activeIndex);
         return 1;
     }
@@ -119,18 +119,18 @@ function parseArgs(args) {
             index += 1;
             options.tenant = args[index];
             if (!options.tenant || !SAFE_ARGUMENT_PATTERN.test(options.tenant)) {
-                throw new Error(`ffs az: invalid tenant: ${options.tenant ?? '(missing)'}`);
+                throw new Error(`ffs cloud az: invalid tenant: ${options.tenant ?? '(missing)'}`);
             }
         }
         else {
-            throw new Error(`ffs az: unknown argument: ${arg}`);
+            throw new Error(`ffs cloud az: unknown argument: ${arg}`);
         }
     }
     return options;
 }
 function printUsage() {
     console.log([
-        'Usage: ffs az [--tenant <tenant>] [--login] [--status]',
+        'Usage: ffs cloud az [--tenant <tenant>] [--login] [--status]',
         '',
         '  (no args)  Verify the sign-in, then pick the active subscription',
         '  --tenant   Sign in to and filter subscriptions by this tenant',
@@ -268,7 +268,7 @@ function runAz(args, { capture = false, env = process.env } = {}) {
         let stderr = '';
         if (capture) {
             if (!child.stdout || !child.stderr) {
-                reject(new Error('ffs az: could not capture Azure CLI output.'));
+                reject(new Error('ffs cloud az: could not capture Azure CLI output.'));
                 return;
             }
             child.stdout.setEncoding('utf8');
@@ -281,7 +281,7 @@ function runAz(args, { capture = false, env = process.env } = {}) {
             });
         }
         child.once('error', (error) => {
-            reject(new Error(`ffs az: could not run the Azure CLI: ${error.message}`));
+            reject(new Error(`ffs cloud az: could not run the Azure CLI: ${error.message}`));
         });
         child.once('close', (exitCode) => {
             const resolvedExitCode = typeof exitCode === 'number' ? exitCode : 1;

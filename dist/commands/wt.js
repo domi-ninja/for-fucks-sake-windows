@@ -8,12 +8,12 @@ async function run(args = process.argv.slice(2)) {
         return 0;
     }
     if (args.length > 0) {
-        console.error(`ffs wt: unknown argument: ${args[0]}`);
+        console.error(`ffs agent t3 worktrees: unknown argument: ${args[0]}`);
         printUsage();
         return 1;
     }
     if (process.platform !== 'win32') {
-        console.error('ffs wt is only available on Windows.');
+        console.error('ffs agent t3 worktrees is only available on Windows.');
         return 1;
     }
     const scriptPath = fileURLToPath(new URL('../../tools/worktree-manager.ps1', import.meta.url));
@@ -37,6 +37,6 @@ async function run(args = process.argv.slice(2)) {
     });
 }
 function printUsage() {
-    console.log('Usage: ffs wt');
+    console.log('Usage: ffs agent t3 worktrees');
 }
 export { run, };

@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "ffs": "node ./dist/ffs.js",
-    "test:cli": "node ./dist/ffs.js test"
+    "test:cli": "node ./dist/ffs.js dotnet test"
   },
   "engines": {
     "node": ">=18"

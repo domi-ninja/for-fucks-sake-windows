@@ -1,11 +1,6 @@
 # ffs
 
-## todo: 
-
-- [ ] rename specific tool support commands to e.g. t3:wt rather than a generic wt
-- [ ] same for .NET testing util
-
-### ffs az
+### ffs cloud az
 
 Checks the Azure CLI sign-in, signs in through Microsoft Edge when the token is missing or expired, then shows a picker for the active subscription. Use `--tenant` to sign in to and filter by one tenant, `--login` to sign in again, and `--status` to only print the current account.
 
@@ -17,13 +12,13 @@ Lists the current directory tree, skipping hidden paths and common dependency, b
 ffs find
 ```
 
-### ffs memory
+### ffs agent memory
 
-Lists and dumps local memory files created by GitHub Copilot, Claude Code, and Codex. The `sucks` subcommand deletes the same files instead. Session history, plans, rules, credentials, and intermediate databases are excluded.
+Lists and dumps local memory files created by GitHub Copilot, Claude Code, and Codex. The `purge` subcommand deletes the same files instead. Session history, plans, rules, credentials, and intermediate databases are excluded.
 
 ```powershell
-ffs memory
-ffs memory sucks
+ffs agent memory
+ffs agent memory purge
 ```
 
 ### ffs path
@@ -54,20 +49,20 @@ ffs unlock .\event-hub
 ## .NET
 
 
-### ffs test
+### ffs dotnet test
 
 Runs dotnet tests from the current working directory with redirected test artifacts. Avoids having to stop the application in visual studio just to build and run the tests in the background really quick.
 
 ```powershell
-ffs test --filter FullyQualifiedName~EventLog
+ffs dotnet test --filter FullyQualifiedName~EventLog
 ```
 
 ## specific tooling support
 
-### ffs wt
+### ffs agent t3 worktrees
 
 Opens a Windows GUI listing git worktree created by [the T3 code tool](https://t3.codes/)  by project, Git branch, and folder name. Check any number of worktrees and delete the selection; registered worktrees are removed through Git, and stale folders are removed directly.
 
 ```powershell
-ffs wt
+ffs agent t3 worktrees
 ```

@@ -17,53 +17,137 @@ type CommandContext = {
 
 type Command = (args: string[], context: CommandContext) => number | Promise<number>;
 
-const commands = new Map<string, Command>([
-  ['az', (args) => az.run(args)],
-  ['find', (args, context) => find.run(args, context)],
-  ['memory', (args) => memory.run(args)],
-  ['path', () => pathCommand.run()],
-  ['port', (args) => port.run(args)],
-  ['test', (args, context) => test.run(args, context)],
-  ['unlock', (args, context) => unlock.run(args, context)],
-  ['wt', (args) => wt.run(args)],
-]);
+type CommandDefinition = {
+  path: readonly [string, ...string[]];
+  run: Command;
+};
+
+type CommandNode = {
+  children: Map<string, CommandNode>;
+  definition?: CommandDefinition;
+};
+
+const commandDefinitions: CommandDefinition[] = [
+  { path: ['find'], run: (args, context) => find.run(args, context) },
+  { path: ['port'], run: (args) => port.run(args) },
+  { path: ['unlock'], run: (args, context) => unlock.run(args, context) },
+  { path: ['path'], run: () => pathCommand.run() },
+  { path: ['dotnet', 'test'], run: (args, context) => test.run(args, context) },
+  { path: ['cloud', 'az'], run: (args) => az.run(args) },
+  { path: ['agent', 'memory'], run: (args) => memory.run(args) },
+  { path: ['agent', 't3', 'worktrees'], run: (args) => wt.run(args) },
+];
+
+const commandTree = createCommandTree(commandDefinitions);
 
 async function main(argv = process.argv.slice(2)) {
-  const [commandName, ...commandArgs] = argv;
+  const [firstArg] = argv;
 
-  if (!commandName || commandName === 'help' || commandName === '--help' || commandName === '-h') {
+  if (!firstArg || firstArg === 'help' || firstArg === '--help' || firstArg === '-h') {
     printHelp();
     return 0;
   }
 
-  const command = commands.get(commandName);
+  const resolved = resolveCommand(commandTree, argv);
 
-  if (!command) {
-    console.error(`Unknown command: ${commandName}`);
+  if (!resolved) {
+    console.error(`Unknown command: ${argv.join(' ')}`);
     printHelp();
     return 1;
   }
 
-  return await command(commandArgs, {
+  const commandName = resolved.definition.path.join(' ');
+
+  return await resolved.definition.run(resolved.args, {
     cwd: process.cwd(),
     commandName,
   });
 }
 
+function createCommandTree(definitions: readonly CommandDefinition[]) {
+  const root: CommandNode = { children: new Map() };
+
+  for (const definition of definitions) {
+    let node = root;
+
+    for (const segment of definition.path) {
+      let child = node.children.get(segment);
+
+      if (!child) {
+        child = { children: new Map() };
+        node.children.set(segment, child);
+      }
+
+      node = child;
+    }
+
+    if (node.definition) {
+      throw new Error(`Duplicate command path: ${definition.path.join(' ')}`);
+    }
+
+    node.definition = definition;
+  }
+
+  return root;
+}
+
+function resolveCommand(root: CommandNode, args: string[]) {
+  let node = root;
+  let resolved: { definition: CommandDefinition; argumentOffset: number } | null = null;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const child = node.children.get(args[index]);
+
+    if (!child) {
+      break;
+    }
+
+    node = child;
+
+    if (node.definition) {
+      resolved = {
+        definition: node.definition,
+        argumentOffset: index + 1,
+      };
+    }
+  }
+
+  if (!resolved) {
+    return null;
+  }
+
+  return {
+    definition: resolved.definition,
+    args: args.slice(resolved.argumentOffset),
+  };
+}
+
 function printHelp() {
-  console.log([
-    'Usage: ffs <command> [args]',
-    '',
-    'Commands:',
-    '  az      Check the Azure CLI sign-in and pick the active subscription',
+  console.log(renderHelp(process.stdout.isTTY === true));
+}
+
+function renderHelp(useFormatting: boolean) {
+  const heading = (text: string) => useFormatting
+    ? `\x1b[1m${text}\x1b[22m`
+    : text;
+
+  return [
+    heading('shell'),
     '  find    List the current directory tree',
-    '  memory  List and dump all local AI-tool memories',
-    '  path    Open the ffs Path editor GUI',
-    '  port    List listeners or kill them by TCP port',
-    '  test    Run dotnet tests from the current working directory',
-    '  unlock  Keep killing processes that lock a file or folder',
-    '  wt      Open the T3 worktree manager GUI',
-  ].join('\n'));
+    '  port [port-to-kill] [second-port-to-kill]    List listeners or kill them by TCP port',
+    '  unlock [path]    Keep killing processes that lock a file or folder',
+    '  path    Open the ffs PATH variable editor GUI because the Windows built-in one is a dumpster fire',
+    '',
+    heading('dotnet'),
+    '  dotnet test    Run dotnet tests from the current working directory',
+    '',
+    heading('cloud'),
+    '  cloud az    Check the Azure CLI sign-in and pick the active subscription',
+    '',
+    heading('agent'),
+    '  agent memory [purge]    List and dump all local AI-tool memories. Optionally purge',
+    '  agent t3 worktrees    Open the T3 worktree manager GUI',
+  ].join('\n');
 }
 
 const entryPath = process.argv[1];
@@ -80,5 +164,9 @@ if (entryPath && import.meta.url === pathToFileURL(entryPath).href) {
 }
 
 export {
+  commandDefinitions,
+  createCommandTree,
   main,
+  renderHelp,
+  resolveCommand,
 };

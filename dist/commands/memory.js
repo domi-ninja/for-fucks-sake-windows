@@ -6,13 +6,13 @@ async function run(args = process.argv.slice(2), context = {}) {
         printUsage();
         return 0;
     }
-    const deleteMemories = args.length === 1 && args[0] === 'sucks';
+    const deleteMemories = args.length === 1 && args[0] === 'purge';
     if (args.length > 0 && !deleteMemories) {
         printUsage();
         return 1;
     }
     if (process.platform !== 'win32') {
-        console.error('ffs memory is only available on Windows.');
+        console.error('ffs agent memory is only available on Windows.');
         return 1;
     }
     const workspaceStoragePath = context.workspaceStoragePath || getWorkspaceStoragePath();
@@ -155,8 +155,8 @@ function formatError(error) {
 function printUsage() {
     console.log([
         'Usage:',
-        '  ffs memory',
-        '  ffs memory sucks',
+        '  ffs agent memory',
+        '  ffs agent memory purge',
     ].join('\n'));
 }
 export { deleteMemoryFiles, findClaudeMemoryFiles, findMemoryFiles, run, };
