@@ -1,12 +1,7 @@
 #!/usr/bin/env node
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseArgs = parseArgs;
-exports.parseListeningProcesses = parseListeningProcesses;
-exports.run = run;
-const node_child_process_1 = require("node:child_process");
-const node_util_1 = require("node:util");
-const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+const execFileAsync = promisify(execFile);
 async function run(args = process.argv.slice(2)) {
     const parsed = parseArgs(args);
     if (parsed.help) {
@@ -145,13 +140,4 @@ function formatError(error) {
 function printUsage() {
     console.log('Usage: ffs port [port ...]');
 }
-if (require.main === module) {
-    run(process.argv.slice(2))
-        .then((exitCode) => {
-        process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-        .catch((error) => {
-        console.error(error && error.stack ? error.stack : error);
-        process.exitCode = 1;
-    });
-}
+export { parseArgs, parseListeningProcesses, run, };

@@ -2,8 +2,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-
-const koffi = require('koffi');
+import koffi from 'koffi';
 
 const DEFAULT_INTERVAL_MILLISECONDS = 1000;
 const CCH_RM_MAX_APP_NAME = 255;
@@ -377,17 +376,6 @@ function printUsage() {
     '  --once                       Kill current locking processes and exit',
     '  --interval <milliseconds>    Poll interval while watching (default: 1000)',
   ].join('\n'));
-}
-
-if (require.main === module) {
-  run(process.argv.slice(2))
-    .then((exitCode) => {
-      process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-    .catch((error) => {
-      console.error(error && error.stack ? error.stack : error);
-      process.exitCode = 1;
-    });
 }
 
 export {

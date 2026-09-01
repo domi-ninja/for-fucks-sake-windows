@@ -1,4 +1,4 @@
 @echo off
 setlocal
 
-node "%~dp0bin\ffs.cjs" %*
+node "%~dp0dist\ffs.js" %*

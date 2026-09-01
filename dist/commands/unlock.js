@@ -1,47 +1,8 @@
 #!/usr/bin/env node
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_INTERVAL_MILLISECONDS = void 0;
-exports.parseArgs = parseArgs;
-exports.run = run;
-const fs = __importStar(require("node:fs"));
-const path = __importStar(require("node:path"));
-const koffi = require('koffi');
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import koffi from 'koffi';
 const DEFAULT_INTERVAL_MILLISECONDS = 1000;
-exports.DEFAULT_INTERVAL_MILLISECONDS = DEFAULT_INTERVAL_MILLISECONDS;
 const CCH_RM_MAX_APP_NAME = 255;
 const CCH_RM_MAX_SVC_NAME = 63;
 const CCH_RM_SESSION_KEY = 32;
@@ -329,13 +290,4 @@ function printUsage() {
         '  --interval <milliseconds>    Poll interval while watching (default: 1000)',
     ].join('\n'));
 }
-if (require.main === module) {
-    run(process.argv.slice(2))
-        .then((exitCode) => {
-        process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-        .catch((error) => {
-        console.error(error && error.stack ? error.stack : error);
-        process.exitCode = 1;
-    });
-}
+export { DEFAULT_INTERVAL_MILLISECONDS, parseArgs, run, };

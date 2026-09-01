@@ -2,14 +2,15 @@
   "name": "ffs",
   "version": "0.1.0",
   "private": true,
-  "description": "Small CommonJS CLI with subcommands.",
+  "type": "module",
+  "description": "Small TypeScript CLI with subcommands.",
   "bin": {
-    "ffs": "./bin/ffs.cjs"
+    "ffs": "./dist/ffs.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "ffs": "node ./bin/ffs.cjs",
-    "test:cli": "node ./bin/ffs.cjs test"
+    "ffs": "node ./dist/ffs.js",
+    "test:cli": "node ./dist/ffs.js test"
   },
   "engines": {
     "node": ">=18"

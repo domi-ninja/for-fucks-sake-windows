@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-'use strict';
-
-const fs = require('node:fs');
-const path = require('node:path');
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const CONFIG_FILE_NAME = '.ffsfindignore';
 const DEFAULT_IGNORE_PATTERNS = [
@@ -13,18 +11,27 @@ const DEFAULT_IGNORE_PATTERNS = [
   '^\\./(?:.*/)?(?:__pycache__|tmp|temp)(?:/|$)',
 ];
 
-async function run(args = process.argv.slice(2), context = {}) {
+type CommandContext = {
+  cwd?: string;
+};
+
+type ConfigPattern = {
+  lineNumber: number;
+  patternSource: string;
+};
+
+async function run(args = process.argv.slice(2), context: CommandContext = {}) {
   if (args.length > 0) {
     console.error('Usage: ffs find');
     return 1;
   }
 
   const cwd = context.cwd || process.cwd();
-  let ignoreRegexes;
+  let ignoreRegexes: RegExp[];
   try {
     ignoreRegexes = loadIgnoreRegexes(cwd);
   } catch (error) {
-    console.error(error.message);
+    console.error(formatError(error));
     return 1;
   }
 
@@ -36,7 +43,7 @@ async function run(args = process.argv.slice(2), context = {}) {
 
   return hadError ? 1 : 0;
 
-  function* walk(entryPath) {
+  function* walk(entryPath: string): Generator<string> {
     const findPath = formatFindPath(cwd, entryPath);
 
     if (findPath !== '.' && isIgnored(findPath, ignoreRegexes)) {
@@ -50,7 +57,7 @@ async function run(args = process.argv.slice(2), context = {}) {
       stats = fs.lstatSync(entryPath);
     } catch (error) {
       hadError = true;
-      console.error(`ffs find: ${formatFindPath(cwd, entryPath)}: ${error.message}`);
+      console.error(`ffs find: ${formatFindPath(cwd, entryPath)}: ${formatError(error)}`);
       return;
     }
 
@@ -63,7 +70,7 @@ async function run(args = process.argv.slice(2), context = {}) {
       children = fs.readdirSync(entryPath, { withFileTypes: true });
     } catch (error) {
       hadError = true;
-      console.error(`ffs find: ${formatFindPath(cwd, entryPath)}: ${error.message}`);
+      console.error(`ffs find: ${formatFindPath(cwd, entryPath)}: ${formatError(error)}`);
       return;
     }
 
@@ -73,8 +80,8 @@ async function run(args = process.argv.slice(2), context = {}) {
   }
 }
 
-function loadIgnoreRegexes(cwd) {
-  const patternSources = [...DEFAULT_IGNORE_PATTERNS];
+function loadIgnoreRegexes(cwd: string) {
+  const patternSources: Array<string | ConfigPattern> = [...DEFAULT_IGNORE_PATTERNS];
   const configPath = findConfigPath(cwd);
 
   if (configPath) {
@@ -84,7 +91,7 @@ function loadIgnoreRegexes(cwd) {
   return patternSources.map((patternSource) => compileIgnoreRegex(patternSource, configPath));
 }
 
-function findConfigPath(startPath) {
+function findConfigPath(startPath: string) {
   let currentPath = fs.realpathSync(startPath);
 
   while (true) {
@@ -104,7 +111,7 @@ function findConfigPath(startPath) {
   }
 }
 
-function readConfigPatterns(configPath) {
+function readConfigPatterns(configPath: string) {
   return fs
     .readFileSync(configPath, 'utf8')
     .split(/\r?\n/)
@@ -115,25 +122,25 @@ function readConfigPatterns(configPath) {
     .filter(({ patternSource }) => patternSource !== '' && !patternSource.startsWith('#'));
 }
 
-function compileIgnoreRegex(pattern, configPath) {
+function compileIgnoreRegex(pattern: string | ConfigPattern, configPath: string | null) {
   const patternSource = typeof pattern === 'string' ? pattern : pattern.patternSource;
 
   try {
     return new RegExp(patternSource, 'i');
   } catch (error) {
     if (configPath && pattern && typeof pattern === 'object') {
-      throw new Error(`${configPath}:${pattern.lineNumber}: invalid ignore regex: ${error.message}`);
+      throw new Error(`${configPath}:${pattern.lineNumber}: invalid ignore regex: ${formatError(error)}`);
     }
 
     throw error;
   }
 }
 
-function isIgnored(findPath, ignoreRegexes) {
+function isIgnored(findPath: string, ignoreRegexes: RegExp[]) {
   return ignoreRegexes.some((ignoreRegex) => ignoreRegex.test(findPath));
 }
 
-function formatFindPath(rootPath, entryPath) {
+function formatFindPath(rootPath: string, entryPath: string) {
   const relativePath = path.relative(rootPath, entryPath);
 
   if (relativePath === '') {
@@ -143,18 +150,11 @@ function formatFindPath(rootPath, entryPath) {
   return `./${relativePath.split(path.sep).join('/')}`;
 }
 
-if (require.main === module) {
-  run(process.argv.slice(2))
-    .then((exitCode) => {
-      process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-    .catch((error) => {
-      console.error(error && error.stack ? error.stack : error);
-      process.exitCode = 1;
-    });
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
-module.exports = {
+export {
   DEFAULT_IGNORE_PATTERNS,
   CONFIG_FILE_NAME,
   formatFindPath,

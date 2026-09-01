@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-'use strict';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import path from 'node:path';
 
-const { spawn } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-
-async function run(args = process.argv.slice(2), context = {}) {
+async function run(args = process.argv.slice(2), context: { cwd?: string } = {}) {
   const repoRoot = fs.realpathSync(context.cwd || process.cwd());
   const solutionPath = findSolution(repoRoot);
   const artifactsPath = path.join(repoRoot, '.artifacts', 'test');
@@ -27,15 +25,15 @@ async function run(args = process.argv.slice(2), context = {}) {
     windowsHide: false,
   });
 
-  return await new Promise((resolve, reject) => {
+  return await new Promise<number>((resolve, reject) => {
     child.once('error', reject);
     child.once('exit', (exitCode) => {
-      resolve(Number.isInteger(exitCode) ? exitCode : 1);
+      resolve(typeof exitCode === 'number' ? exitCode : 1);
     });
   });
 }
 
-function findSolution(repoRoot) {
+function findSolution(repoRoot: string) {
   const solutionNames = fs
     .readdirSync(repoRoot, { withFileTypes: true })
     .filter((entry) => entry.isFile() && /\.slnx?$/i.test(entry.name))
@@ -62,18 +60,7 @@ function findSolution(repoRoot) {
   return path.join(repoRoot, solutionNames[0]);
 }
 
-if (require.main === module) {
-  run(process.argv.slice(2))
-    .then((exitCode) => {
-      process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-    .catch((error) => {
-      console.error(error && error.stack ? error.stack : error);
-      process.exitCode = 1;
-    });
-}
-
-module.exports = {
+export {
   findSolution,
   run,
 };

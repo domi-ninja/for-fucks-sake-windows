@@ -1,15 +1,6 @@
 #!/usr/bin/env node
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteMemoryFiles = deleteMemoryFiles;
-exports.findClaudeMemoryFiles = findClaudeMemoryFiles;
-exports.findMemoryFiles = findMemoryFiles;
-exports.run = run;
-const node_fs_1 = require("node:fs");
-const node_path_1 = __importDefault(require("node:path"));
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 async function run(args = process.argv.slice(2), context = {}) {
     if (args.includes('--help') || args.includes('-h')) {
         printUsage();
@@ -29,7 +20,7 @@ async function run(args = process.argv.slice(2), context = {}) {
     const memoryFiles = [
         ...await findMemoryFiles(workspaceStoragePath),
         ...await findClaudeMemoryFiles(homePath),
-        ...await findFilesIfExists(node_path_1.default.join(homePath, '.codex', 'memories')),
+        ...await findFilesIfExists(path.join(homePath, '.codex', 'memories')),
     ].sort((left, right) => left.localeCompare(right));
     if (memoryFiles.length === 0) {
         console.log('No supported AI memories found.');
@@ -42,7 +33,7 @@ async function run(args = process.argv.slice(2), context = {}) {
     for (const memoryFile of memoryFiles) {
         console.log(`\n=== ${memoryFile} ===\n`);
         try {
-            const content = await node_fs_1.promises.readFile(memoryFile, 'utf8');
+            const content = await fs.readFile(memoryFile, 'utf8');
             process.stdout.write(content);
             if (!content.endsWith('\n')) {
                 process.stdout.write('\n');
@@ -59,7 +50,7 @@ async function deleteMemoryFiles(memoryFiles) {
     let hadError = false;
     for (const memoryFile of memoryFiles) {
         try {
-            await node_fs_1.promises.unlink(memoryFile);
+            await fs.unlink(memoryFile);
             console.log(`Deleted ${memoryFile}`);
         }
         catch (error) {
@@ -74,7 +65,7 @@ function getWorkspaceStoragePath() {
     if (!appDataPath) {
         throw new Error('APPDATA is not set.');
     }
-    return node_path_1.default.join(appDataPath, 'Code', 'User', 'workspaceStorage');
+    return path.join(appDataPath, 'Code', 'User', 'workspaceStorage');
 }
 function getHomePath() {
     const homePath = process.env.USERPROFILE;
@@ -86,7 +77,7 @@ function getHomePath() {
 async function findMemoryFiles(workspaceStoragePath) {
     let workspaceEntries;
     try {
-        workspaceEntries = await node_fs_1.promises.readdir(workspaceStoragePath, { withFileTypes: true });
+        workspaceEntries = await fs.readdir(workspaceStoragePath, { withFileTypes: true });
     }
     catch (error) {
         if (error.code === 'ENOENT') {
@@ -99,7 +90,7 @@ async function findMemoryFiles(workspaceStoragePath) {
         if (!workspaceEntry.isDirectory()) {
             continue;
         }
-        const memoryPath = node_path_1.default.join(workspaceStoragePath, workspaceEntry.name, 'GitHub.copilot-chat', 'memory-tool', 'memories');
+        const memoryPath = path.join(workspaceStoragePath, workspaceEntry.name, 'GitHub.copilot-chat', 'memory-tool', 'memories');
         try {
             memoryFiles.push(...await findFiles(memoryPath));
         }
@@ -112,10 +103,10 @@ async function findMemoryFiles(workspaceStoragePath) {
     return memoryFiles;
 }
 async function findClaudeMemoryFiles(homePath) {
-    const projectsPath = node_path_1.default.join(homePath, '.claude', 'projects');
+    const projectsPath = path.join(homePath, '.claude', 'projects');
     let projectEntries;
     try {
-        projectEntries = await node_fs_1.promises.readdir(projectsPath, { withFileTypes: true });
+        projectEntries = await fs.readdir(projectsPath, { withFileTypes: true });
     }
     catch (error) {
         if (error.code === 'ENOENT') {
@@ -128,7 +119,7 @@ async function findClaudeMemoryFiles(homePath) {
         if (!projectEntry.isDirectory()) {
             continue;
         }
-        const memoryPath = node_path_1.default.join(projectsPath, projectEntry.name, 'memory');
+        const memoryPath = path.join(projectsPath, projectEntry.name, 'memory');
         memoryFiles.push(...await findFilesIfExists(memoryPath));
     }
     return memoryFiles;
@@ -145,10 +136,10 @@ async function findFilesIfExists(directoryPath) {
     }
 }
 async function findFiles(directoryPath) {
-    const entries = await node_fs_1.promises.readdir(directoryPath, { withFileTypes: true });
+    const entries = await fs.readdir(directoryPath, { withFileTypes: true });
     const files = [];
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-        const entryPath = node_path_1.default.join(directoryPath, entry.name);
+        const entryPath = path.join(directoryPath, entry.name);
         if (entry.isDirectory()) {
             files.push(...await findFiles(entryPath));
         }
@@ -168,13 +159,4 @@ function printUsage() {
         '  ffs memory sucks',
     ].join('\n'));
 }
-if (require.main === module) {
-    run(process.argv.slice(2))
-        .then((exitCode) => {
-        process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-        .catch((error) => {
-        console.error(error && error.stack ? error.stack : error);
-        process.exitCode = 1;
-    });
-}
+export { deleteMemoryFiles, findClaudeMemoryFiles, findMemoryFiles, run, };

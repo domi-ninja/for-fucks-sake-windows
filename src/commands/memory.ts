@@ -209,17 +209,6 @@ function printUsage() {
   ].join('\n'));
 }
 
-if (require.main === module) {
-  run(process.argv.slice(2))
-    .then((exitCode) => {
-      process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-    .catch((error) => {
-      console.error(error && error.stack ? error.stack : error);
-      process.exitCode = 1;
-    });
-}
-
 export {
   deleteMemoryFiles,
   findClaudeMemoryFiles,

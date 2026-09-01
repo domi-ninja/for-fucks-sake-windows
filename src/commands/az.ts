@@ -1,11 +1,55 @@
 #!/usr/bin/env node
 
-'use strict';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import path from 'node:path';
+import * as readline from 'node:readline';
 
-const { spawn } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const readline = require('node:readline');
+type AzAccount = {
+  id: string;
+  name: string;
+  tenantId: string;
+  user: {
+    name: string;
+  };
+};
+
+type AzSubscription = {
+  id: string;
+  name: string;
+  state: string;
+  tenantId: string;
+  tenantDefaultDomain?: string;
+  tenantDisplayName?: string;
+};
+
+type AzOptions = {
+  forceLogin: boolean;
+  help: boolean;
+  statusOnly: boolean;
+  tenant: string | null;
+};
+
+type CapturedAzResult = {
+  exitCode: number;
+  stderr: string;
+  stdout: string;
+};
+
+type RunAzOptions = {
+  capture?: boolean;
+  env?: NodeJS.ProcessEnv;
+};
+
+interface AzRunner {
+  (args: string[], options: { capture: true; env?: NodeJS.ProcessEnv }): Promise<CapturedAzResult>;
+  (args: string[], options?: { capture?: false; env?: NodeJS.ProcessEnv }): Promise<number>;
+}
+
+type AzCommandContext = {
+  findEdge?: () => string | null;
+  runAz?: AzRunner;
+};
 
 const SAFE_ARGUMENT_PATTERN = /^[A-Za-z0-9._@:-]+$/;
 const VIEWPORT_SIZE = 12;
@@ -17,16 +61,16 @@ const CLEAR_BELOW = `${ESC}[0J`;
 const INVERSE = `${ESC}[7m`;
 const RESET = `${ESC}[0m`;
 
-function cursorUp(lineCount) {
+function cursorUp(lineCount: number) {
   return `${ESC}[${lineCount}A`;
 }
 
-async function run(args = process.argv.slice(2), context = {}) {
+async function run(args = process.argv.slice(2), context: AzCommandContext = {}) {
   let options;
   try {
     options = parseArgs(args);
   } catch (error) {
-    console.error(error.message);
+    console.error(formatError(error));
     printUsage();
     return 1;
   }
@@ -129,8 +173,8 @@ async function run(args = process.argv.slice(2), context = {}) {
   return 0;
 }
 
-function parseArgs(args) {
-  const options = {
+function parseArgs(args: string[]) {
+  const options: AzOptions = {
     help: false,
     statusOnly: false,
     forceLogin: false,
@@ -172,7 +216,7 @@ function printUsage() {
   ].join('\n'));
 }
 
-function printStatus(account) {
+function printStatus(account: AzAccount | null) {
   if (!account) {
     console.log('Not signed in.');
     return;
@@ -183,13 +227,13 @@ function printStatus(account) {
   console.log(`  tenant        ${account.tenantId}`);
 }
 
-function printSubscriptions(subscriptions, activeIndex) {
+function printSubscriptions(subscriptions: AzSubscription[], activeIndex: number) {
   subscriptions.forEach((subscription, index) => {
     console.error(`${index === activeIndex ? '*' : ' '} ${formatSubscription(subscription)}`);
   });
 }
 
-function formatSubscription(subscription) {
+function formatSubscription(subscription: AzSubscription) {
   return `${subscription.name}  ${subscription.tenantId}`;
 }
 
@@ -200,19 +244,14 @@ async function readConfiguredAccount(azRunner = runAz) {
     return null;
   }
 
-  let account;
+  let account: unknown;
   try {
     account = JSON.parse(shown.stdout);
   } catch {
     return null;
   }
 
-  return {
-    id: account.id,
-    name: account.name,
-    tenantId: account.tenantId,
-    user: { name: account.user && account.user.name ? account.user.name : 'unknown' },
-  };
+  return parseAccount(account);
 }
 
 async function hasValidAccessToken(azRunner = runAz) {
@@ -230,7 +269,7 @@ async function readActiveAccount(azRunner = runAz) {
   return account;
 }
 
-async function readSubscriptions(tenant, azRunner = runAz) {
+async function readSubscriptions(tenant: string | null, azRunner: AzRunner = runAz) {
   const listed = await azRunner(['account', 'list', '--output', 'json'], { capture: true });
 
   if (listed.exitCode !== 0) {
@@ -238,20 +277,25 @@ async function readSubscriptions(tenant, azRunner = runAz) {
     return [];
   }
 
-  let subscriptions;
+  let subscriptions: unknown;
   try {
     subscriptions = JSON.parse(listed.stdout);
   } catch {
     return [];
   }
 
+  if (!Array.isArray(subscriptions)) {
+    return [];
+  }
+
   return subscriptions
+    .filter(isAzSubscription)
     .filter((subscription) => subscription.state === 'Enabled')
     .filter((subscription) => !tenant || matchesTenant(subscription, tenant))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function matchesTenant(subscription, tenant) {
+function matchesTenant(subscription: AzSubscription, tenant: string) {
   const wanted = tenant.toLowerCase();
 
   return (
@@ -261,7 +305,7 @@ function matchesTenant(subscription, tenant) {
   );
 }
 
-async function login(tenant, azRunner = runAz, edgeLocator = findEdge) {
+async function login(tenant: string | null, azRunner: AzRunner = runAz, edgeLocator = findEdge) {
   const loginArgs = ['login', '--output', 'none'];
 
   if (tenant) {
@@ -283,7 +327,7 @@ async function login(tenant, azRunner = runAz, edgeLocator = findEdge) {
 // The Azure CLI opens the sign-in page through Python's webbrowser module, which
 // prefers the BROWSER command. Putting Edge on PATH keeps BROWSER free of the
 // spaces in "Program Files" that the module does not quote.
-function edgeBrowserEnv(edgePath) {
+function edgeBrowserEnv(edgePath: string) {
   return {
     ...process.env,
     BROWSER: path.basename(edgePath),
@@ -317,8 +361,10 @@ function findEdge() {
   return null;
 }
 
-function runAz(args, { capture = false, env = process.env } = {}) {
-  return new Promise((resolve, reject) => {
+function runAz(args: string[], options: { capture: true; env?: NodeJS.ProcessEnv }): Promise<CapturedAzResult>;
+function runAz(args: string[], options?: { capture?: false; env?: NodeJS.ProcessEnv }): Promise<number>;
+function runAz(args: string[], { capture = false, env = process.env }: RunAzOptions = {}) {
+  return new Promise<number | CapturedAzResult>((resolve, reject) => {
     // az ships as az.cmd on Windows, which needs a shell. Every argument here is
     // a literal, a GUID, or a tenant checked against SAFE_ARGUMENT_PATTERN, so
     // cmd.exe has nothing to re-interpret.
@@ -336,35 +382,47 @@ function runAz(args, { capture = false, env = process.env } = {}) {
     let stderr = '';
 
     if (capture) {
+      if (!child.stdout || !child.stderr) {
+        reject(new Error('ffs az: could not capture Azure CLI output.'));
+        return;
+      }
+
       child.stdout.setEncoding('utf8');
       child.stderr.setEncoding('utf8');
-      child.stdout.on('data', (chunk) => {
+      child.stdout.on('data', (chunk: string) => {
         stdout += chunk;
       });
-      child.stderr.on('data', (chunk) => {
+      child.stderr.on('data', (chunk: string) => {
         stderr += chunk;
       });
     }
 
-    child.once('error', (error) => {
+    child.once('error', (error: Error) => {
       reject(new Error(`ffs az: could not run the Azure CLI: ${error.message}`));
     });
 
     child.once('close', (exitCode) => {
-      const resolvedExitCode = Number.isInteger(exitCode) ? exitCode : 1;
+      const resolvedExitCode = typeof exitCode === 'number' ? exitCode : 1;
 
       resolve(capture ? { exitCode: resolvedExitCode, stdout, stderr } : resolvedExitCode);
     });
   });
 }
 
-function selectFromList(items, { title, initialIndex = 0, format }) {
-  return new Promise((resolve) => {
+function selectFromList<T>(
+  items: T[],
+  { title, initialIndex = 0, format }: {
+    title: string;
+    initialIndex?: number;
+    format: (item: T) => string;
+  },
+) {
+  return new Promise<number | null>((resolve) => {
     const output = process.stdout;
     const input = process.stdin;
 
     let filter = '';
-    let matches = items.map((item, index) => index);
+    let matches = items.map((_item, index) => index);
     let cursor = Math.max(matches.indexOf(initialIndex), 0);
     let offset = 0;
     let renderedLines = 0;
@@ -378,7 +436,7 @@ function selectFromList(items, { title, initialIndex = 0, format }) {
 
     render();
 
-    function onKeypress(sequence, key) {
+    function onKeypress(sequence: string | undefined, key: readline.Key) {
       if (!key) {
         return;
       }
@@ -428,7 +486,7 @@ function selectFromList(items, { title, initialIndex = 0, format }) {
       }
     }
 
-    function move(delta) {
+    function move(delta: number) {
       if (matches.length === 0) {
         return;
       }
@@ -437,11 +495,11 @@ function selectFromList(items, { title, initialIndex = 0, format }) {
       render();
     }
 
-    function setFilter(nextFilter) {
+    function setFilter(nextFilter: string) {
       filter = nextFilter;
       const needle = filter.toLowerCase();
       matches = items
-        .map((item, index) => index)
+        .map((_item, index) => index)
         .filter((index) => format(items[index]).toLowerCase().includes(needle));
       cursor = 0;
       offset = 0;
@@ -481,7 +539,7 @@ function selectFromList(items, { title, initialIndex = 0, format }) {
       renderedLines = lines.length;
     }
 
-    function finish(selectedIndex) {
+    function finish(selectedIndex: number | null) {
       input.off('keypress', onKeypress);
       input.setRawMode(Boolean(wasRaw));
       input.pause();
@@ -497,18 +555,47 @@ function selectFromList(items, { title, initialIndex = 0, format }) {
   });
 }
 
-if (require.main === module) {
-  run(process.argv.slice(2))
-    .then((exitCode) => {
-      process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
-    })
-    .catch((error) => {
-      console.error(error && error.stack ? error.stack : error);
-      process.exitCode = 1;
-    });
+function parseAccount(value: unknown): AzAccount | null {
+  if (
+    !isRecord(value)
+    || typeof value.id !== 'string'
+    || typeof value.name !== 'string'
+    || typeof value.tenantId !== 'string'
+  ) {
+    return null;
+  }
+
+  const userName = isRecord(value.user) && typeof value.user.name === 'string'
+    ? value.user.name
+    : 'unknown';
+
+  return {
+    id: value.id,
+    name: value.name,
+    tenantId: value.tenantId,
+    user: { name: userName },
+  };
 }
 
-module.exports = {
+function isAzSubscription(value: unknown): value is AzSubscription {
+  return isRecord(value)
+    && typeof value.id === 'string'
+    && typeof value.name === 'string'
+    && typeof value.state === 'string'
+    && typeof value.tenantId === 'string'
+    && (value.tenantDefaultDomain === undefined || typeof value.tenantDefaultDomain === 'string')
+    && (value.tenantDisplayName === undefined || typeof value.tenantDisplayName === 'string');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export {
   formatSubscription,
   hasValidAccessToken,
   login,
