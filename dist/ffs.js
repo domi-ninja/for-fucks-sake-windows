@@ -6,12 +6,14 @@ import * as pathCommand from './commands/path.js';
 import * as port from './commands/port.js';
 import * as test from './commands/test.js';
 import * as unlock from './commands/unlock.js';
+import * as which from './commands/which.js';
 import * as wt from './commands/wt.js';
 import { pathToFileURL } from 'node:url';
 const commandDefinitions = [
     { path: ['find'], run: (args, context) => find.run(args, context) },
     { path: ['port'], run: (args) => port.run(args) },
     { path: ['unlock'], run: (args, context) => unlock.run(args, context) },
+    { path: ['which'], run: (args) => which.run(args) },
     { path: ['path'], run: () => pathCommand.run() },
     { path: ['dotnet', 'test'], run: (args, context) => test.run(args, context) },
     { path: ['cloud', 'az'], run: (args) => az.run(args) },
@@ -93,6 +95,7 @@ function renderHelp(useFormatting) {
         '  port [port-to-kill] [second-port-to-kill]    List listeners or kill them by TCP port',
         '  unlock [path]    Keep killing processes that lock a file or folder',
         '  path    Open the ffs PATH variable editor GUI because the Windows built-in one is a dumpster fire',
+        '  which <command>    Show where a command on PATH is installed',
         '',
         heading('dotnet'),
         '  dotnet test    Run dotnet tests from the current working directory',
